@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <meta name="twitter:title" content="{{ name }} on Web App" />
-
+  
   <!-- Shoelace CSS and JS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/themes/light.css" />
   <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/shoelace.js"></script>
@@ -52,9 +52,49 @@
     .follow-info span {
       margin-right: 10px;
     }
+    .e112 {
+      position: relative;
+      top:5px;
+      left:95vw;
+      z-index: 5000;
+    }
+    .e113 {
+      position: relative;
+      top:5px;
+      left:97vw;
+      z-index: 50000;
+    }
+    .e114 {
+      position: relative;
+      top:5px;
+      left:93vw;
+      z-index: 50000;
+    }
   </style>
 </head>
 <body>
+  <div style="position: relative; width: 0; height: 0">
+    <div style="position: absolute; left: 96%; top: 5px">
+      <sl-tooltip content="Home">
+        <sl-icon-button name="house-door-fill" class="e112" href="/home"></sl-icon-button>
+      </sl-tooltip>
+      
+    </div>
+
+    <div style="position: absolute; left: 100%; top: 5px">
+      <sl-tooltip content="Logout">
+        <sl-icon-button name="box-arrow-right" class="e113" href="/logout"></sl-icon-button>
+      </sl-tooltip>
+      
+    </div>
+    <div style="position: absolute; left: 92%; top: 5px">
+      <sl-tooltip content="My Profile">
+        <sl-icon-button name="person-fill" class="e114" href="/users/{{ handle }}"></sl-icon-button>
+      </sl-tooltip>
+      
+    </div>
+  </div>
+  
   {% if name %}
   <script>
     let following = {{ is_following|tojson }};  // Dynamic follow status from backend
