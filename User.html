@@ -1,0 +1,146 @@
+<!doctype html>
+<html data-theme="dark">
+<head>
+  <title>{{ name }} on Web App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <meta name="twitter:title" content="{{ name }} on Web App" />
+
+  <!-- Shoelace CSS and JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/themes/light.css" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/shoelace.js"></script>
+
+  <style>
+    body {
+      background-color: white;
+      color: black;
+    }
+
+    /* Custom Styles */
+    .skeleton-overview header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .skeleton-overview sl-skeleton {
+      margin-bottom: 1rem;
+    }
+
+    .brsmall {
+      display: block;
+      margin-bottom: -1em;
+    }
+
+    .dialog-container {
+      margin: 1rem 0;
+    }
+
+    .post-content {
+      background-color: #f5f5f5;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .follow-info {
+      font-size: 16px;
+      color: lightgrey;
+    }
+
+    .follow-info span {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  {% if name %}
+  <script>
+    let following = {{ is_following|tojson }};  // Dynamic follow status from backend
+
+    function toggleFollow() {
+      following = !following;
+      document.getElementById("follow").innerText = following ? "Following" : "Follow";
+
+      // Send an AJAX request to follow/unfollow the user
+      fetch(`/follow/{{ id }}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ action: following ? "follow" : "unfollow" })
+      }).then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            console.log("Follow status updated!");
+          } else {
+            console.error("Failed to update follow status");
+          }
+        });
+    }
+  </script>
+
+  <!-- Profile Section -->
+  <sl-tab-group>
+    <sl-tab slot="nav" panel="profile">Profile</sl-tab>
+    <sl-tab slot="nav" panel="posts">Posts</sl-tab>
+
+    <!-- Profile Tab -->
+    <sl-tab-panel name="profile">
+      <div style="margin: 20px;">
+        <sl-tooltip content="{{ name }}'s Profile Image">
+          <sl-avatar id="avatar" label="User avatar" image="{{ avatar }}" initials="SL"></sl-avatar>
+        </sl-tooltip>
+        <label style="font-size:25px; margin-left: 10px;" for="avatar">
+         
+          {{ name|safe }}<small>
+            {% if followers_count > 99999 %}
+            <sl-icon name="patch-check-fill" style="color:dodgerblue"></sl-icon>
+            {% else %}
+            <div hidden></div>  
+            {% endif %}
+          </small>
+          <sl-button id="follow" onclick="toggleFollow()">{{ 'Following' if is_following else 'Follow' }}</sl-button>
+          <span class="brsmall"></span>
+          <small style="color: lightgrey; font-size: 16px; margin-left: 60px">@{{ handle }}</small>
+          
+        </label>
+        <div id="verif_icon" hidden>
+          <sl-tooltip content="Verified User">
+            <sl-icon name="patch-check-fill" style="font-size: 15px; color:dodgerblue;" id="verified"></sl-icon>
+          </sl-tooltip>
+        </div>
+
+        <!-- Follow info -->
+        <div class="follow-info">
+          <span>{{ followers_count }} Followers</span> | 
+          <span>{{ following_count }} Following</span>
+        </div>
+      </div>
+    </sl-tab-panel>
+
+    <!-- Posts Tab -->
+    <sl-tab-panel name="posts">
+      <div style="margin: 20px;">
+        <sl-button onclick="window.location.href='/create_post'" style="margin-bottom: 20px;">Create New Post</sl-button>
+        
+        {% for post in posts %}
+          <div class="post-content">
+            <strong>{{ post.title }}</strong>
+            <p>{{ post.content }}</p>
+            <small style="color: lightgrey; font-size: 12px;">{{ post.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+          </div>
+        {% else %}
+          <p>No posts available yet. Be the first to create one!</p>
+        {% endfor %}
+      </div>
+    </sl-tab-panel>
+    
+  {% else %}
+  <center>
+    <p style="font-size: 50px">Oops! No User Found Here!</p>
+  </center>
+  {% endif %}
+</body>
+</html>
