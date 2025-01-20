@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Welcome to the Home Page</h1>
+        <p class="text-muted">Here are some random posts from our users:</p>
+        
+        {% if posts %}
+            <div class="row">
+                {% for post in posts %}
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ post.title }}</h5>
+                            <p class="card-text">{{ post.content }}</p>
+                            <p class="text-muted">
+                                By {{ post.user.user_name }} on {{ post.created_at.strftime('%Y-%m-%d') if post.created_at else 'Unknown' }}
+                            </p>
+
+                            <!-- Like Button -->
+                            <form action="{{ url_for('like_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-sm 
+                                    {% if post.likes|length > 0 and user_has_liked(post.likes, session.get('user_name')) %}
+                                        btn-danger
+                                    {% else %}
+                                        btn-outline-primary
+                                    {% endif %}">
+                                    {% if post.likes|length > 0 and user_has_liked(post.likes, session.get('user_name')) %}
+                                        Unlike
+                                    {% else %}
+                                        Like
+                                    {% endif %}
+                                    ({{ post.likes|length }})
+                                </button>
+                            </form>
+
+                            <!-- Delete Button -->
+                            {% if session.get('user_name') == 'VivaPlaysYT' %}
+                            <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-warning">No posts available at the moment!</p>
+        {% endif %}
+    </div>
+</body>
+</html>

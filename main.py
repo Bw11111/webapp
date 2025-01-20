@@ -122,6 +122,33 @@ def like_post(post_id):
     return redirect(url_for("home"))
 
 
+@app.route('/delete_post/<int:post_id>', methods=["POST"])
+def delete_post(post_id):
+    initialize_database()
+
+    if "user_name" not in session:
+        flash("You need to log in to delete a post.", "error")
+        return redirect(url_for("login"))
+
+    # Check if the user is authorized
+    if session["user_name"] != "VivaPlaysYT":
+        flash("You are not authorized to delete this post.", "error")
+        return redirect(url_for("home"))
+
+    # Fetch the post to delete
+    post = Post.query.get_or_404(post_id)
+
+    # Delete associated likes
+    likes_to_delete = Like.query.filter_by(post_id=post.id).all()
+    for like in likes_to_delete:
+        db.session.delete(like)
+
+    # Delete the post
+    db.session.delete(post)
+    db.session.commit()
+
+    flash("Post deleted successfully.", "success")
+    return redirect(url_for("home"))
 
 # Home Route
 @app.route('/home')
