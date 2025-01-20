@@ -1,10 +1,13 @@
-from flask import Flask, render_template, redirect, request, flash, session, url_for
+from flask import Flask, render_template, redirect, request, flash, session, url_for, jsonify, g
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from datetime import datetime
 import os
 from sqlalchemy.sql.expression import func
+from functools import wraps
+from flask import abort
+
 
 app = Flask(__name__)
 app.secret_key = "hdsaghiadshihidsgihadsghia"
@@ -22,7 +25,8 @@ class Profile(db.Model):
     display_name = db.Column(db.String(20), unique=False, nullable=False)
     pass_word = db.Column(db.String(128), nullable=False)
     avatar = db.Column(db.String(128), nullable=True)  # Field for user avatar
-    
+    is_banned = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False)
     followers = db.relationship('Follow', backref='followed', foreign_keys='Follow.followed_id')
     following = db.relationship('Follow', backref='follower', foreign_keys='Follow.follower_id')
 
@@ -90,7 +94,19 @@ def handle_bad_request(e):
 @app.errorhandler(404)
 def err404(e):
     return render_template("404.html", url=request.path.replace("/", '')), 404
-
+# Decorator to restrict access to admins
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Ensure the user is logged in and is an admin
+        if "user_name" not in session:
+            return redirect(url_for('login'))
+        
+        current_user = Profile.query.filter_by(user_name=session["user_name"]).first()
+        if not current_user or not current_user.is_admin:
+            abort(403)  # Forbidden access
+        return f(*args, **kwargs)
+    return decorated_function
 # Index Route
 @app.route('/')
 def index():
@@ -98,7 +114,40 @@ def index():
     if "user_name" in session:
         return redirect(url_for("user_page", handle=session["user_name"]))
     return render_template("Log_in.html")
+@app.before_request
+def check_banned():
+    # Skip the banned check if the user is accessing the banned page
+    if request.endpoint == 'banned':
+        return None
+    
+    # Check if the user is logged in
+    if "user_name" in session:
+        user = Profile.query.filter_by(user_name=session["user_name"]).first()
+        
+        # Redirect to banned page if the user is banned
+        if user and user.is_banned:  # Assuming `is_banned` is a boolean column in your Profile model
+            return redirect(url_for('banned'))
 
+@app.route('/banned')
+def banned():
+    return render_template('banned.html')
+@app.route('/ban_user/<string:user_handle>', methods=['GET'])
+@admin_required
+def ban_user(user_handle):
+    user = Profile.query.filter_by(user_name=user_handle).first()
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Check if the user is already banned
+    if user.is_banned:
+        return jsonify({"message": f"User {user_handle} is already banned."}), 400
+    
+    # Ban the user
+    user.is_banned = True
+    db.session.commit()
+    
+    return jsonify({"message": f"User {user_handle} has been banned successfully."}), 200
 # Like Post Route
 @app.route('/like/<int:post_id>', methods=["POST"])
 def like_post(post_id):
@@ -164,6 +213,7 @@ def update_name():
     return render_template("update_name.html", user=user)
 
 
+
 @app.route('/delete_post/<int:post_id>', methods=["POST"])
 def delete_post(post_id):
     initialize_database()
@@ -222,6 +272,64 @@ def home():
     random_posts = Post.query.order_by(func.random()).limit(1000).all()
     return render_template('home.html', posts=random_posts)
 
+@app.route('/make_admin/<string:user_handle>', methods=['GET', 'POST'])
+@admin_required  # Only admins can access this
+def make_admin(user_handle):
+    # Query the user by their handle
+    user = Profile.query.filter_by(user_name=user_handle).first()
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Check if the user is already an admin
+    if user.is_admin:
+        return jsonify({"message": f"User {user_handle} is already an admin."}), 400
+
+    # Grant admin privileges
+    user.is_admin = True
+    db.session.commit()
+
+    return jsonify({"message": f"User {user_handle} has been made an admin successfully."}), 200
+@app.route('/admin_panel', methods=['GET', 'POST'])
+@admin_required
+def admin_panel():
+    isadmin = Profile.query.filter_by(user_name=session['user_name']).first().is_admin
+
+    if not isadmin and session['user_name'] != "VivaPlaysYT":
+        return redirect(url_for("index")) 
+
+    users = Profile.query.all()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        user_id = request.form.get('user_id')
+
+        user = Profile.query.filter_by(id=user_id).first()
+
+        if not user:
+            flash("User not found.", "danger")
+            return redirect(url_for('admin_panel'))
+
+        if action == 'ban':
+            user.is_banned = True
+            flash(f"User {user.user_name} has been banned.", "success")
+        elif action == 'unban':
+            user.is_banned = False
+            flash(f"User {user.user_name} has been unbanned.", "success")
+        elif action == 'make_admin':
+            user.is_admin = True
+            flash(f"User {user.user_name} is now an admin.", "success")
+        elif action == 'remove_admin':
+            user.is_admin = False
+            flash(f"User {user.user_name} is no longer an admin.", "success")
+        else:
+            flash("Invalid action.", "danger")
+
+        db.session.commit()
+        return redirect(url_for('admin_panel'))
+
+    return render_template('admin_panel.html', users=users)
+
 
 @app.route('/create_post', methods=["GET", "POST"])
 def create_post():
@@ -250,6 +358,7 @@ def create_post():
     return render_template("create_post.html")
 
 @app.route('/delete_posts/<user_name>', methods=["GET","POST"])
+@admin_required
 def delete_all_posts(user_name):
     initialize_database()
 
@@ -258,9 +367,7 @@ def delete_all_posts(user_name):
         return redirect(url_for("login"))
 
     # Check if the logged-in user matches the user requesting the deletion
-    if session["user_name"] != "VivaPlaysYT":
-        flash("You are not authorized to delete this user's posts.", "error")
-        return redirect(url_for("user_page", handle=session["user_name"]))
+   
    
     # Find the user by username
     user = Profile.query.filter_by(user_name=user_name).first()
@@ -280,7 +387,7 @@ def delete_all_posts(user_name):
     
     for post in posts_to_delete:
         db.session.delete(post)
-    Profile.query.filter_by(user_name=user_name).delete()
+    user.is_banned = True
     db.session.commit()
     flash("All posts and likes deleted successfully.", "success")
 
@@ -368,10 +475,11 @@ def user_page(handle):
     return render_template("User.html", name=profile.display_name, avatar=avatar_url, id=profile.id, handle=handle, posts=profile.posts, followers_count=followers_count, following_count=following_count, is_following=is_following)
 
 @app.route('/increase_followers/<string:user_name>/<int:number>', methods=["GET"])
+@admin_required
 def increase_followers(user_name, number):
     initialize_database()
 
-    if "user_name" not in session or session['user_name']!="VivaPlaysYT":
+    if "user_name" not in session:
         flash("You need to log in to perform this action.", "error")
         return redirect(url_for("login"))
 
