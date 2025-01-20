@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Web App</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/themes/light.css">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/shoelace.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Web App</h1>
+      <sl-divider style="--width: 4px;"></sl-divider>
+    </header>
+
+    <sl-drawer label="Sign Up" class="drawer-custom-size" style="--size: 40vw;">
+      <sl-card class="card-basic">
+        <form method="post" action="/register" id="form">
+          <h2>Sign Up</h2>
+          <sl-input 
+            name="handle" 
+            placeholder="Handle" 
+            help-text="Your Handle. Unchangeable" 
+            required>
+          </sl-input>
+          <br>
+          <sl-input 
+            name="user_name" 
+            placeholder="Name" 
+            minlength="3" 
+            maxlength="20" 
+            help-text="Your display name." 
+            required 
+            clearable>
+          </sl-input>
+          <br>
+          <sl-input 
+            name="pass_word" 
+            placeholder="Password" 
+            help-text="Password" 
+            clearable>
+          </sl-input>
+          <br>
+          <input type="submit" value="Sign Up">
+        </form>
+      </sl-card>
+    </sl-drawer>
+
+    <sl-button style="float: right;" onclick="document.querySelector('.drawer-custom-size').show()">Sign Up</sl-button>
+
+    <style>
+      .card-basic {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+    </style>
+  </main>
+</body>
+</html>

@@ -21,14 +21,16 @@ class Profile(db.Model):
     user_name = db.Column(db.String(20), unique=True, nullable=False)
     display_name = db.Column(db.String(20), unique=False, nullable=False)
     pass_word = db.Column(db.String(128), nullable=False)
+    avatar = db.Column(db.String(128), nullable=True)  # Field for user avatar
     
     followers = db.relationship('Follow', backref='followed', foreign_keys='Follow.followed_id')
     following = db.relationship('Follow', backref='follower', foreign_keys='Follow.follower_id')
 
-    def __init__(self, user_name, display_name, pass_word):
+    def __init__(self, user_name, display_name, pass_word, avatar=None):
         self.user_name = user_name
         self.display_name = display_name
         self.pass_word = generate_password_hash(pass_word)
+        self.avatar = avatar  # Default to None if no avatar provided
 
 # Follow Model
 class Follow(db.Model):
@@ -122,6 +124,46 @@ def like_post(post_id):
     return redirect(url_for("home"))
 
 
+
+# Update User Name Route
+@app.route('/update_name', methods=["GET", "POST"])
+def update_name():
+    initialize_database()
+
+    if "user_name" not in session:
+        flash("You need to log in to update your name.", "error")
+        return redirect(url_for("login"))
+
+    user = Profile.query.filter_by(user_name=session["user_name"]).first()
+
+    if request.method == "POST":
+       
+        new_display_name = request.form["name"]
+
+        # Validate input
+        if not new_display_name:
+            flash("Both username and display name are required.", "error")
+            return redirect(url_for("update_name"))
+
+        # Check if new username is taken
+       
+
+        # Update the user details
+        
+        user.display_name = new_display_name
+
+        # Update the session
+        
+        session["display_name"] = new_display_name
+
+        db.session.commit()
+
+        flash("Username and display name updated successfully!", "success")
+        return redirect(url_for("user_page", handle=session['user_name']))
+
+    return render_template("update_name.html", user=user)
+
+
 @app.route('/delete_post/<int:post_id>', methods=["POST"])
 def delete_post(post_id):
     initialize_database()
@@ -149,7 +191,30 @@ def delete_post(post_id):
 
     flash("Post deleted successfully.", "success")
     return redirect(url_for("home"))
+@app.route('/edit_profile', methods=["GET", "POST"])
+def edit_profile():
+    initialize_database()
+    
+    if "user_name" not in session:
+        flash("You need to log in to edit your profile.", "error")
+        return redirect(url_for("login"))
+    
+    user = Profile.query.filter_by(user_name=session["user_name"]).first()
+    
+    if request.method == "POST":
+        display_name = request.form["user_name"]
+        avatar = request.form.get("avatar")  # Allow changing avatar
+        
+        if display_name:
+            user.display_name = display_name
+        if avatar:
+            user.avatar = avatar
+        
+        db.session.commit()
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for("user_page", handle=user.user_name))
 
+    return render_template("settings.html", user=user)
 # Home Route
 @app.route('/home')
 def home():
@@ -241,6 +306,7 @@ def login():
             flash("Logged in successfully!", "success")
             return redirect(url_for("user_page", handle=user.user_name))
         else:
+            print("invalid user or pass!")
             flash("Invalid username or password!", "error")
             return redirect(url_for("login"))
     return render_template("Log_in.html")
@@ -260,6 +326,7 @@ def register():
         user_name = request.form["handle"]
         display_name = request.form["user_name"]
         pass_word = request.form["pass_word"]
+        avatar = request.form.get("avatar")  # Avatar URL or path if provided
 
         if not user_name or not display_name or not pass_word:
             flash("All fields are required!", "error")
@@ -269,14 +336,13 @@ def register():
             flash("Username already exists!", "error")
             return redirect(url_for("register"))
 
-        new_user = Profile(user_name=user_name, display_name=display_name, pass_word=pass_word)
+        new_user = Profile(user_name=user_name, display_name=display_name, pass_word=pass_word, avatar=avatar)
         db.session.add(new_user)
         db.session.commit()
 
         flash("Registration successful! You can now log in.", "success")
         return redirect(url_for("login"))
     return render_template("signup.html")
-
 # User Profile Route
 @app.route('/users/<handle>')
 def user_page(handle):
@@ -289,14 +355,6 @@ def user_page(handle):
     if not profile:
         return render_template("404.html", url=handle), 404
 
-    # Allow all logged-in users to view profiles
-    # Remove the authorization check for now
-    # if session["user_name"] != handle:
-    #     flash("You are not authorized to view this page.", "error")
-    #     return redirect(url_for("user_page", handle=session["user_name"]))
-
-    posts = Post.query.filter_by(user_id=profile.id).all()
-
     # Get followers and following count
     followers_count = Follow.query.filter_by(followed_id=profile.id).count()
     following_count = Follow.query.filter_by(follower_id=profile.id).count()
@@ -304,7 +362,11 @@ def user_page(handle):
     # Check if the logged-in user is following the profile
     is_following = Follow.query.filter_by(follower_id=session['user_id'], followed_id=profile.id).first() is not None
 
-    return render_template("User.html", name=profile.display_name, avatar="none", id=profile.id, handle=handle, posts=posts, followers_count=followers_count, following_count=following_count, is_following=is_following)
+    # Default to "none" for avatar if not set
+    avatar_url = profile.avatar if profile.avatar else "none"
+
+    return render_template("User.html", name=profile.display_name, avatar=avatar_url, id=profile.id, handle=handle, posts=profile.posts, followers_count=followers_count, following_count=following_count, is_following=is_following)
+
 @app.route('/increase_followers/<string:user_name>/<int:number>', methods=["GET"])
 def increase_followers(user_name, number):
     initialize_database()
@@ -356,7 +418,6 @@ def follow_user(user_id):
     
     db.session.commit()
     return redirect(url_for("user_page", handle=logged_in_user.user_name))
-
 if __name__ == "__main__":
     initialize_database()
     app.run(host='0.0.0.0', port=81)

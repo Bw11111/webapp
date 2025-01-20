@@ -1,0 +1,62 @@
+<!doctype html>
+<html data-theme="dark">
+<head>
+  <title>User Settings - Web App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  
+  <!-- Shoelace CSS and JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/themes/light.css" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.0.0-beta.87/dist/shoelace.js"></script>
+
+  <style>
+    body {
+      background-color: white;
+      color: black;
+    }
+
+    .container {
+      margin: 20px;
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+      padding: 20px;
+      background-color: #f5f5f5;
+      border-radius: 10px;
+    }
+
+    .settings-section h2 {
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+
+    .settings-section sl-button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Settings</h1>
+    <p>Manage your account settings and preferences here.</p>
+
+    
+
+    <!-- Name Update Section -->
+    <div class="settings-section">
+      <h2>Update Name</h2>
+      <form action="{{ url_for('update_name') }}" method="POST">
+        <sl-input name="name" label="New Name" value="{{ name }}"></sl-input>
+        <sl-button type="submit" variant="primary">Update Name</sl-button>
+      </form>
+    </div>
+
+    <!-- Password Update Section -->
+    
+
+    <!-- Preferences Section -->
+    
+  </div>
+</body>
+</html>
