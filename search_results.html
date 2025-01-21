@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/light.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/shoelace-autoloader.js"></script>
+    <style>
+        .e112 {
+            position: relative;
+            top:0px;
+            left:95vw;
+            z-index: 5000;
+        }
+        .e113 {
+            position: relative;
+            top:0px;
+            left:97vw;
+            z-index: 50000;
+        }
+        .e114 {
+            position: relative;
+            top:0px;
+            left:93vw;
+            z-index: 50000;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .search-results {
+            margin-top: 30px;
+        }
+        .result-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div style="position: relative; width: 0; height: 0">
+        <div style="position: absolute; left: 96%; top: -30px">
+            <sl-tooltip content="Home">
+                <sl-icon-button name="house-door-fill" class="e112" href="/home"></sl-icon-button>
+            </sl-tooltip>
+        </div>
+        <div style="position: absolute; left: 100%; top: -30px">
+            <sl-tooltip content="Logout">
+                <sl-icon-button name="box-arrow-right" class="e113" href="/logout"></sl-icon-button>
+            </sl-tooltip>
+        </div>
+        <div style="position: absolute; left: 92%; top: -30px">
+            <sl-tooltip content="My Profile">
+                <sl-icon-button name="person-fill" class="e114" href="/users/{{ session.get('user_name') }}"></sl-icon-button>
+            </sl-tooltip>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Search Results for "{{ query }}"</h1>
+        
+        <div class="search-results">
+            <h3>Profiles</h3>
+            {% if profiles %}
+                <div class="row">
+                    {% for profile in profiles %}
+                        <div class="col-md-6 mb-4">
+                            <div class="result-item">
+                                <h5>{{ profile.display_name }}</h5>
+                                <p>Username: <a href="{{ url_for('user_page', handle=profile.user_name) }}">{{ profile.user_name }}</a></p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No profiles found.</p>
+            {% endif %}
+
+            <h3>Posts</h3>
+            {% if posts %}
+                <div class="row">
+                    {% for post in posts %}
+                        <div class="col-md-6 mb-4">
+                            <div class="result-item">
+                                <h5>{{ post.title }}</h5>
+                                <p>{{ post.content }}</p>
+                                <p class="text-muted">
+                                    By <span onclick="window.open('/users/{{ post.user.user_name }}')">{{ post.user.user_name }}</span> on {{ post.created_at.strftime('%Y-%m-%d') if post.created_at else 'Unknown' }}
+                                </p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No posts found.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
